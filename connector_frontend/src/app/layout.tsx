@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minimal Next.js App",
-  description: "Ultra-minimal Next.js application",
+  title: "Ocean Professional - JIRA/Confluence Connector",
+  description: "Professional connector application for JIRA and Confluence integration",
 };
 
 export default function RootLayout({
