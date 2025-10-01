@@ -4,7 +4,11 @@ import {
   ConnectionResponse,
   ConnectionTestRequest,
   ProjectsResponse,
-  ServiceType
+  ServiceType,
+  OAuthInitRequest,
+  OAuthInitResponse,
+  OAuthCallbackRequest,
+  OAuthStatus
 } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vscode-internal-41570-beta.beta01.cloud.kavia.ai:3001';
@@ -51,11 +55,16 @@ class ApiClient {
   }
 
   // PUBLIC_INTERFACE
-  async testConnection(request: ConnectionTestRequest): Promise<ConnectionResponse> {
+  async testConnection(request: ConnectionTestRequest, useOAuth: boolean = false): Promise<ConnectionResponse> {
     /**
-     * Test connection to a service using stored credentials
+     * Test connection to a service using stored credentials or OAuth
      */
-    const response = await fetch(`${this.baseUrl}/connections/test`, {
+    const url = new URL(`${this.baseUrl}/connections/test`);
+    if (useOAuth) {
+      url.searchParams.append('use_oauth', 'true');
+    }
+
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,11 +96,16 @@ class ApiClient {
   }
 
   // PUBLIC_INTERFACE
-  async getJiraProjects(): Promise<ProjectsResponse> {
+  async getJiraProjects(useOAuth: boolean = false): Promise<ProjectsResponse> {
     /**
      * Fetch JIRA projects for authenticated user
      */
-    const response = await fetch(`${this.baseUrl}/projects/jira`);
+    const url = new URL(`${this.baseUrl}/projects/jira`);
+    if (useOAuth) {
+      url.searchParams.append('use_oauth', 'true');
+    }
+
+    const response = await fetch(url.toString());
     
     const data = await response.json();
     
@@ -103,11 +117,16 @@ class ApiClient {
   }
 
   // PUBLIC_INTERFACE
-  async getConfluenceSpaces(): Promise<ProjectsResponse> {
+  async getConfluenceSpaces(useOAuth: boolean = false): Promise<ProjectsResponse> {
     /**
      * Fetch Confluence spaces for authenticated user
      */
-    const response = await fetch(`${this.baseUrl}/projects/confluence`);
+    const url = new URL(`${this.baseUrl}/projects/confluence`);
+    if (useOAuth) {
+      url.searchParams.append('use_oauth', 'true');
+    }
+
+    const response = await fetch(url.toString());
     
     const data = await response.json();
     
@@ -130,6 +149,81 @@ class ApiClient {
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.message || 'Failed to delete credentials');
+    }
+  }
+
+  // OAuth Methods
+
+  // PUBLIC_INTERFACE
+  async initOAuthFlow(request: OAuthInitRequest): Promise<OAuthInitResponse> {
+    /**
+     * Initialize OAuth 2.0 authorization flow
+     */
+    const response = await fetch(`${this.baseUrl}/auth/oauth/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to initialize OAuth flow');
+    }
+    
+    return data;
+  }
+
+  // PUBLIC_INTERFACE
+  async handleOAuthCallback(request: OAuthCallbackRequest): Promise<ConnectionResponse> {
+    /**
+     * Handle OAuth callback and complete authentication
+     */
+    const response = await fetch(`${this.baseUrl}/auth/oauth/callback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'OAuth authentication failed');
+    }
+    
+    return data;
+  }
+
+  // PUBLIC_INTERFACE
+  async getOAuthStatus(): Promise<OAuthStatus> {
+    /**
+     * Get OAuth authentication status for all services
+     */
+    const response = await fetch(`${this.baseUrl}/auth/oauth/status`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get OAuth status');
+    }
+    
+    return response.json();
+  }
+
+  // PUBLIC_INTERFACE
+  async revokeOAuthTokens(serviceType: ServiceType): Promise<void> {
+    /**
+     * Revoke OAuth tokens for a service
+     */
+    const response = await fetch(`${this.baseUrl}/auth/oauth/${serviceType}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || 'Failed to revoke OAuth tokens');
     }
   }
 }

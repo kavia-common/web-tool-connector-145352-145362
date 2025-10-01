@@ -56,3 +56,38 @@ export interface ProjectsResponse {
   projects: ProjectData[];
   total_count: number;
 }
+
+// OAuth-related types
+export interface OAuthInitRequest {
+  service_type: ServiceType;
+  state?: string;
+}
+
+export interface OAuthInitResponse {
+  auth_url: string;
+  state: string;
+}
+
+export interface OAuthCallbackRequest {
+  code: string;
+  state: string;
+}
+
+export interface OAuthStatus {
+  [key: string]: {
+    authenticated: boolean;
+    expires_at?: string;
+    user_info?: {
+      account_id?: string;
+      email?: string;
+      name?: string;
+    };
+  };
+}
+
+// Enhanced connection state
+export interface EnhancedConnectionState {
+  credentials_auth: ConnectionResponse | null;
+  oauth_auth: ConnectionResponse | null;
+  preferred_auth: AuthMethod;
+}
